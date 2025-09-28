@@ -51,21 +51,18 @@ if uploaded:
         if "recipes" in out:
             for r in out["recipes"]:
                 st.subheader(r.get("title", "Untitled"))
-                st.markdown(f"⏱ {r.get('estimated_time_minutes', '—')} min • 🎚 {r.get('difficulty', '—')}")
+                st.markdown(f"⏱ {r.get('estimated_time_minutes', '—')} minutes")
+
                 st.markdown("**Ingredients:**")
-                for ingr in r.get("ingredients", []):
-                    st.write(f"- {ingr}")
+                st.write(r.get("ingredients", []))
+
                 st.markdown("**Steps:**")
-                for i, step in enumerate(r.get("steps", []), 1):
-                    st.markdown(f"{i}. {step}")
-                if r.get("substitutions"):
-                    st.markdown("**Substitutions:**")
-                    for s in r["substitutions"]:
-                        st.write(f"- {s}")
-                if r.get("shopping_list"):
-                    st.markdown("**Shopping list:**")
-                    for s in r["shopping_list"]:
-                        st.write(f"- {s}")
+                instructions = r.get("instructions", [])
+                if instructions:
+                    for i, step in enumerate(instructions, 1):
+                        st.markdown(f"{i}. {step}")
+                else:
+                    st.markdown("_No steps generated_")
         else:
             st.error("Recipe generation failed.")
             st.code(json.dumps(out, indent=2))

@@ -37,11 +37,15 @@ def generate_recipes(ingredients, constraints=None, n_recipes=2, model="gpt-4o-m
         {{
           "title": "Recipe title",
           "ingredients": ["item1", "item2"],
-          "instructions": ["Step 1", "Step 2"],
+          "instructions": ["Step 1", "Step 2", "Step 3"],
           "estimated_time_minutes": 25
         }}
       ]
     }}
+
+    ⚠️ Important:
+    - Return only valid JSON, no extra text.
+    - Each recipe MUST include an "instructions" list.
     """
 
     resp = client.chat.completions.create(
