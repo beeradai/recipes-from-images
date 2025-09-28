@@ -1,62 +1,64 @@
-# llm_recipes.py
 import os
 import json
 import streamlit as st
 from openai import OpenAI
 
-def get_api_key():
-    try:
-        # Works on Streamlit Cloud
-        if "OPENAI_API_KEY" in st.secrets:
-            return st.secrets["OPENAI_API_KEY"]
-    except Exception:
-        pass  # st.secrets not available locally
+# �� Initialize OpenAI client
+if "OPENAI_API_KEY" in st.secrets:
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+else:
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    # Local fallback
-    return os.getenv("OPENAI_API_KEY")
+MODEL = "gpt-4o-mini"  # fast + multimodal
 
-api_key = get_api_key()
-if not api_key:
-    raise ValueError(
-        "❌ No OpenAI API key found. Set it in .streamlit/secrets.toml or as an environment variable."
-    )
-
-client = OpenAI(api_key=api_key)
-
-def generate_recipes(ingredients, constraints=None, n_recipes=2, model="gpt-4o-mini"):
-    constraints_text = constraints or "no constraints"
+def generate_recipes(ingredients, constraints=None, n_recipes=2, model=MODEL):
+    """
+    Generate structured recipes from a list of ingredients using OpenAI.
+    Always returns JSON with 'recipes' → list of dicts containing
+    title, estimated_time_minutes, ingredients, steps.
+    """
     prompt = f"""
-    You are a recipe generator. Given the following ingredients:
-    {ingredients}
+You are a recipe generator. 
+Create {n_recipes} recipes using the following available ingredients:
 
-    And constraints: {constraints_text}
+Ingredients: {ingredients}
 
-    Generate {n_recipes} recipes in strict JSON format like this:
+Constraints: {constraints if constraints else "None"}
+
+⚠️ OUTPUT FORMAT: Return ONLY valid JSON. No commentary, no markdown.
+Schema:
+{{
+  "recipes": [
     {{
-      "recipes": [
-        {{
-          "title": "Recipe title",
-          "ingredients": ["item1", "item2"],
-          "instructions": ["Step 1", "Step 2", "Step 3"],
-          "estimated_time_minutes": 25
-        }}
-      ]
+      "title": "string",
+      "estimated_time_minutes": number,
+      "ingredients": ["item1", "item2"],
+      "steps": ["First step...", "Second step...", "..."]
     }}
-
-    ⚠️ Important:
-    - Return only valid JSON, no extra text.
-    - Each recipe MUST include an "instructions" list.
+  ]
+}}
     """
 
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
     )
 
     content = resp.choices[0].message.content.strip()
 
     try:
-        return json.loads(content)  # ✅ parse LLM output into dict
+        return json.loads(content)  # ✅ parse JSON output
     except json.JSONDecodeError:
-        # fallback: wrap raw text
-        return {"recipes": [{"title": "Parsing error", "instructions": [content]}]}
+        # fallback if the model outputs invalid JSON
+        return {
+            "recipes": [
+                {
+                    "title": "Parsing error",
+                    "estimated_time_minutes": 0,
+                    "ingredients": ingredients,
+                    "steps": [content],  # fallback: dump raw text
+                }
+            ]
+        }
+

@@ -7,62 +7,64 @@ from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
 
-def get_api_key():
-    try:
-        # Works on Streamlit Cloud
-        if "OPENAI_API_KEY" in st.secrets:
-            return st.secrets["OPENAI_API_KEY"]
-    except Exception:
-        pass  # st.secrets not available locally
+st.set_page_config(page_title="AI Recipe Generator", page_icon="��", layout="wide")
+st.title("�� Multimodal Recipe Assistant")
 
-    # Local fallback
-    return os.getenv("OPENAI_API_KEY")
+st.write("Upload one or more fridge images or type in ingredients manually:")
 
-api_key = get_api_key()
-if not api_key:
-    raise ValueError(
-        "❌ No OpenAI API key found. Set it in .streamlit/secrets.toml or as an environment variable."
-    )
+# �� Multiple image uploads
+uploaded_images = st.file_uploader(
+    "Upload fridge/ingredient images", type=["jpg", "jpeg", "png"], accept_multiple_files=True
+)
 
-client = OpenAI(api_key=api_key)
+# �� Manual text input
+manual_input = st.text_area("Or enter ingredients manually (comma-separated):", "")
 
-st.set_page_config(page_title="🍳 Multimodal Recipe Assistant", layout="centered")
-st.title("🍳 Multimodal Recipe Assistant")
+ingredient_list = []
 
-uploaded = st.file_uploader("Upload a fridge/pantry photo", type=["jpg", "jpeg", "png"])
-constraints = st.text_input("Dietary preferences (optional)", "")
+# process uploaded images
+if uploaded_images:
+    for img_file in uploaded_images:
+        pil_img = Image.open(img_file).convert("RGB")
+        detected = detect_ingredients_from_pil(pil_img)
+        ingredient_list.extend(normalize_detected(detected))
 
-if uploaded:
-    img = Image.open(uploaded)
-    st.image(img, caption="Uploaded image", width='stretch')
+# process manual input
+if manual_input.strip():
+    manual_items = [i.strip() for i in manual_input.split(",") if i.strip()]
+    ingredient_list.extend(manual_items)
 
-    st.write("🔎 Detecting ingredients...")
-    detected = detect_ingredients_from_pil(img)
-    st.write("Detections:", detected)
+# remove duplicates
+ingredient_list = sorted(set(ingredient_list))
 
-    normalized = normalize_detected(detected)
-    st.write("Normalized ingredient candidates:")
-    editable = st.text_area("Edit ingredient list (comma-separated)", value=", ".join(normalized))
-    ingredient_list = [i.strip() for i in editable.split(",") if i.strip()]
+if ingredient_list:
+    st.success(f"✅ Ingredients detected: {', '.join(ingredient_list)}")
+else:
+    st.info("No ingredients detected yet. Upload an image or type some in!")
 
-    if st.button("🍲 Generate Recipes"):
-        with st.spinner("Cooking up ideas..."):
-            out = generate_recipes(ingredient_list, constraints=constraints, n_recipes=2)
-        if "recipes" in out:
-            for r in out["recipes"]:
-                st.subheader(r.get("title", "Untitled"))
-                st.markdown(f"⏱ {r.get('estimated_time_minutes', '—')} minutes")
+constraints = st.text_input("Any dietary constraints? (e.g. vegetarian, gluten-free)")
 
-                st.markdown("**Ingredients:**")
-                st.write(r.get("ingredients", []))
+if st.button("�� Generate Recipes"):
+    with st.spinner("Cooking up ideas..."):
+        out = generate_recipes(ingredient_list, constraints=constraints, n_recipes=2)
 
-                st.markdown("**Steps:**")
-                instructions = r.get("instructions", [])
-                if instructions:
-                    for i, step in enumerate(instructions, 1):
-                        st.markdown(f"{i}. {step}")
-                else:
-                    st.markdown("_No steps generated_")
-        else:
-            st.error("Recipe generation failed.")
-            st.code(json.dumps(out, indent=2))
+    if "recipes" in out:
+        for r in out["recipes"]:
+            st.subheader(r.get("title", "Untitled"))
+            st.markdown(f"⏱ {r.get('estimated_time_minutes', '—')} minutes")
+
+            st.markdown("**Ingredients:**")
+            st.write(", ".join(r.get("ingredients", [])))
+
+            st.markdown("**Steps:**")
+            steps = r.get("steps", [])
+            if isinstance(steps, list):
+                for i, step in enumerate(steps, 1):
+                    st.markdown(f"{i}. {step}")
+            else:
+                st.write(steps)
+
+            st.markdown("---")
+    else:
+        st.error("❌ No recipes generated.")
+
