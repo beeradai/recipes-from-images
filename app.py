@@ -8,10 +8,6 @@ from detector import detect_ingredients_from_pil
 from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
-import subprocess
-print("===== GL libraries available =====")
-print(subprocess.getoutput("ls -l /usr/lib/x86_64-linux-gnu/ | grep libGL"))
-
 
 st.set_page_config(page_title="🍳 Multimodal Recipe Assistant", layout="centered")
 st.title("🍳 Multimodal Recipe Assistant")
