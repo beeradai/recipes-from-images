@@ -23,21 +23,35 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 def generate_recipes(ingredients, constraints=None, n_recipes=2, model="gpt-4o-mini"):
-    """
-    Generate recipes using a list of ingredients and optional constraints.
-    """
-    prompt = f"Generate {n_recipes} creative and detailed recipes using the following ingredients: {ingredients}."
-    if constraints:
-        prompt += f" Please follow these constraints: {constraints}."
+    constraints_text = constraints or "no constraints"
+    prompt = f"""
+    You are a recipe generator. Given the following ingredients:
+    {ingredients}
 
-    messages = [
-        {"role": "system", "content": "You are a helpful recipe assistant that generates structured recipes."},
-        {"role": "user", "content": prompt}
-    ]
+    And constraints: {constraints_text}
+
+    Generate {n_recipes} recipes in strict JSON format like this:
+    {{
+      "recipes": [
+        {{
+          "title": "Recipe title",
+          "ingredients": ["item1", "item2"],
+          "instructions": ["Step 1", "Step 2"],
+          "estimated_time_minutes": 25
+        }}
+      ]
+    }}
+    """
 
     resp = client.chat.completions.create(
         model=model,
-        messages=messages
+        messages=[{"role": "user", "content": prompt}],
     )
 
-    return resp.choices[0].message.content
+    content = resp.choices[0].message.content.strip()
+
+    try:
+        return json.loads(content)  # ✅ parse LLM output into dict
+    except json.JSONDecodeError:
+        # fallback: wrap raw text
+        return {"recipes": [{"title": "Parsing error", "instructions": [content]}]}
