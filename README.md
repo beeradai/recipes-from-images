@@ -1,4 +1,4 @@
-# Multimodal Recipe Assistant
+# Recipes From Images
 
 This project is a demo of a multimodal recipe assistant that can parse images of fridge contents and suggest recipes using OpenAI's latest API.
 

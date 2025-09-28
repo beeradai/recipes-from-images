@@ -11,12 +11,12 @@ import json
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="AI Recipe Assistant", page_icon="��", layout="centered")
-st.title("�� Multimodal Recipe Assistant")
+st.title("Recipes From Images")
 st.caption("Upload fridge/pantry photos + add ingredients manually to generate creative recipes!")
 
 # --- Image upload ---
 uploaded_files = st.file_uploader(
-    "�� Upload fridge/pantry images",
+    "Upload fridge/pantry images",
     type=["jpg", "jpeg", "png"],
     accept_multiple_files=True
 )
@@ -32,7 +32,7 @@ if uploaded_files:
     # Normalize & deduplicate
     ingredient_list = list(set(normalize_detected(ingredient_list)))
 
-    st.subheader("�� Detected Ingredients")
+    st.subheader("Detected Ingredients")
     st.caption("Uncheck any items you don’t want to include:")
 
     # Multi-select with checkboxes
