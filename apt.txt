@@ -1,3 +1,4 @@
+libgl1
 libopencv-core-dev
 python3-opencv
 libgl1-mesa-glx
