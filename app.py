@@ -7,16 +7,22 @@ from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
 
-# Try Streamlit secrets first, fallback to environment variable
-api_key = None
-if "OPENAI_API_KEY" in st.secrets:
-    api_key = st.secrets["OPENAI_API_KEY"]
-else:
-    api_key = os.getenv("OPENAI_API_KEY")
+def get_api_key():
+    try:
+        # Works on Streamlit Cloud
+        if "OPENAI_API_KEY" in st.secrets:
+            return st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        pass  # st.secrets not available locally
 
+    # Local fallback
+    return os.getenv("OPENAI_API_KEY")
+
+api_key = get_api_key()
 if not api_key:
-    st.error("❌ No OpenAI API key found. Please set it in Streamlit secrets or as an environment variable.")
-    st.stop()
+    raise ValueError(
+        "❌ No OpenAI API key found. Set it in .streamlit/secrets.toml or as an environment variable."
+    )
 
 client = OpenAI(api_key=api_key)
 

@@ -1,6 +1,6 @@
-openai>=1.0.0
-streamlit>=1.30.0
+streamlit
 pillow
-requests
+openai>=1.0.0
 ultralytics
 opencv-python-headless
+numpy
