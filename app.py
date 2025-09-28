@@ -34,7 +34,7 @@ constraints = st.text_input("Dietary preferences (optional)", "")
 
 if uploaded:
     img = Image.open(uploaded)
-    st.image(img, caption="Uploaded image", use_container_width=True)
+    st.image(img, caption="Uploaded image", width='stretch')
 
     st.write("🔎 Detecting ingredients...")
     detected = detect_ingredients_from_pil(img)
