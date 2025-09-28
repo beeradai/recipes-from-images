@@ -4,7 +4,7 @@ from openai import OpenAI
 
 client = OpenAI()
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+OpenAI.api_key = os.environ.get("OPENAI_API_KEY")
 
 BASE_SYSTEM = (
     "You are a helpful, precise recipe assistant. "
