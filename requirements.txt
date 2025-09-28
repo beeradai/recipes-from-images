@@ -3,3 +3,4 @@ streamlit>=1.30.0
 pillow
 requests
 ultralytics
+opencv-python-headless
