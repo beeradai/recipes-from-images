@@ -1,6 +1,8 @@
 import os
 import json
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -26,7 +28,7 @@ def generate_recipes(ingredients, constraints="", n_recipes=2, model="gpt-3.5-tu
         {"role": "user", "content": user_prompt},
     ]
 
-    resp = openai.ChatCompletion.create(
+    resp = client.chat.completions.create(
         model=model,
         messages=messages,
         max_tokens=800,
