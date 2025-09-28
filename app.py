@@ -57,7 +57,7 @@ if uploaded:
                     st.write(f"- {ingr}")
                 st.markdown("**Steps:**")
                 for i, step in enumerate(r.get("steps", []), 1):
-                    st.write(f"{i}. {step}")
+                    st.markdown(f"{i}. {step}")
                 if r.get("substitutions"):
                     st.markdown("**Substitutions:**")
                     for s in r["substitutions"]:
