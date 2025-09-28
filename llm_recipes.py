@@ -60,4 +60,3 @@ Make sure "steps" is always a JSON list of strings, never a single block of text
                 }
             ]
         }
-

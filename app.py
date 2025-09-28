@@ -1,5 +1,3 @@
-import os
-from openai import OpenAI
 import streamlit as st
 from PIL import Image
 from detector import detect_ingredients_from_pil
@@ -7,68 +5,59 @@ from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+st.set_page_config(page_title="�� Recipes from Images", layout="wide")
 
-st.set_page_config(page_title="AI Recipe Assistant", page_icon="��", layout="centered")
-st.title("Recipes From Images")
-st.caption("Upload fridge/pantry photos + add ingredients manually to generate creative recipes!")
+st.title("�� Recipes from Your Ingredients")
+st.write("Upload ingredient photos and/or type them manually, then generate recipes!")
 
-# --- Image upload ---
+# --- Upload multiple images ---
 uploaded_files = st.file_uploader(
-    "Upload fridge/pantry images",
-    type=["jpg", "jpeg", "png"],
+    "�� Upload 1–5 ingredient images", 
+    type=["jpg", "jpeg", "png"], 
     accept_multiple_files=True
 )
 
-ingredient_list = []
-
+all_detected = []
 if uploaded_files:
-    for uploaded_file in uploaded_files:
-        img = Image.open(uploaded_file)
-        detected = detect_ingredients_from_pil(img)
-        ingredient_list.extend(detected)
+    for file in uploaded_files:
+        pil_img = Image.open(file).convert("RGB")
+        detected = detect_ingredients_from_pil(pil_img)
+        normalized = normalize_detected(detected)
+        all_detected.extend(normalized)
 
-    # Normalize & deduplicate
-    ingredient_list = list(set(normalize_detected(ingredient_list)))
+# --- Deduplicate ingredients ---
+all_detected = sorted(set(all_detected))
 
-    st.subheader("Detected Ingredients")
-    st.caption("Uncheck any items you don’t want to include:")
-
-    # Multi-select with checkboxes
-    selected_ingredients = []
-    for ing in ingredient_list:
-        if st.checkbox(ing, value=True):
+# --- Checkbox selection for detected ingredients ---
+selected_ingredients = []
+if all_detected:
+    st.subheader("✅ Select detected ingredients to include")
+    for ing in all_detected:
+        if st.checkbox(ing, value=True, key=f"chk_{ing}"):
             selected_ingredients.append(ing)
 
-    ingredient_list = selected_ingredients
+# --- Manual text input ---
+manual_input = st.text_area("✍️ Add ingredients manually (comma-separated)")
+if manual_input.strip():
+    manual_ingredients = [i.strip() for i in manual_input.split(",") if i.strip()]
+    selected_ingredients.extend(manual_ingredients)
 
-# --- Manual ingredient entry ---
-manual_text = st.text_area("✍️ Add extra ingredients (comma-separated):")
-if manual_text:
-    manual_ings = [x.strip() for x in manual_text.split(",") if x.strip()]
-    ingredient_list.extend(manual_ings)
+# --- Constraints (e.g., vegan, gluten-free) ---
+constraints = st.text_input("⚙️ Optional cooking constraints (e.g., vegan, gluten-free, 30 min max)")
 
-ingredient_list = list(set(ingredient_list))  # deduplicate again
-
-if ingredient_list:
-    st.success("✅ Ingredients ready: " + ", ".join(ingredient_list))
-
-# --- Dietary constraints ---
-constraints = st.text_input("⚡ Any dietary preferences or constraints? (e.g. vegan, gluten-free, low-carb)")
-
-# --- Generate recipes ---
-if st.button("�� Generate Recipes"):
-    if not ingredient_list:
-        st.warning("Please provide at least one ingredient!")
-    else:
+# --- Generate Recipes button ---
+if not selected_ingredients:
+    st.warning("�� Please select or add at least one ingredient before generating recipes.")
+else:
+    if st.button("�� Generate Recipes"):
         with st.spinner("Cooking up ideas..."):
-            out = generate_recipes(ingredient_list, constraints=constraints, n_recipes=2)
+            out = generate_recipes(selected_ingredients, constraints=constraints)
 
         if "recipes" in out:
             for r in out["recipes"]:
                 st.subheader(r.get("title", "Untitled"))
-                st.markdown(f"⏱ {r.get('estimated_time_minutes', '—')} minutes")
+                st.write(f"⏱ Estimated time: {r.get('estimated_time_minutes', '—')} minutes")
+
                 st.markdown("**Ingredients:**")
                 st.write(", ".join(r.get("ingredients", [])))
 
@@ -76,12 +65,8 @@ if st.button("�� Generate Recipes"):
                 steps = r.get("steps", [])
                 if isinstance(steps, list):
                     for i, step in enumerate(steps, 1):
-                        st.markdown(f"{i}. {step}")
+                        st.write(f"{i}. {step}")
                 else:
                     st.write(steps)
-
-                st.divider()
         else:
-            st.error("⚠️ Could not parse recipe output. Here’s the raw response:")
-            st.text(out)
-
+            st.error("⚠️ No recipes generated. Please try again.")
