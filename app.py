@@ -5,14 +5,14 @@ from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
 
-st.set_page_config(page_title="�� Recipes from Images", layout="wide")
+st.set_page_config(page_title="Recipes from Images", layout="wide")
 
-st.title("�� Recipes from Your Ingredients")
+st.title("Recipes From Images")
 st.write("Upload ingredient photos and/or type them manually, then generate recipes!")
 
 # --- Upload multiple images ---
 uploaded_files = st.file_uploader(
-    "�� Upload 1–5 ingredient images", 
+    "Upload 1–5 ingredient images (can have multiple ingredients per image)", 
     type=["jpg", "jpeg", "png"], 
     accept_multiple_files=True
 )
