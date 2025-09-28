@@ -1,13 +1,24 @@
+import os
 from openai import OpenAI
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 import streamlit as st
 from PIL import Image
 from detector import detect_ingredients_from_pil
 from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
 import json
+
+# Try Streamlit secrets first, fallback to environment variable
+api_key = None
+if "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+else:
+    api_key = os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    st.error("❌ No OpenAI API key found. Please set it in Streamlit secrets or as an environment variable.")
+    st.stop()
+
+client = OpenAI(api_key=api_key)
 
 st.set_page_config(page_title="🍳 Multimodal Recipe Assistant", layout="centered")
 st.title("🍳 Multimodal Recipe Assistant")
