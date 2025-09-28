@@ -1,3 +1,7 @@
+from openai import OpenAI
+
+client = OpenAI()
+
 from ultralytics import YOLO
 import numpy as np
 from PIL import Image

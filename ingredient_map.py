@@ -1,3 +1,7 @@
+from openai import OpenAI
+
+client = OpenAI()
+
 # Basic label → canonical ingredient mapping
 MAP = {
     "banana": "banana",

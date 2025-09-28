@@ -1,42 +1,52 @@
-# 🍳 Multimodal Recipe Assistant
+# Multimodal Recipe Assistant
 
-An AI-powered app that generates recipe ideas from a photo of your fridge/pantry.
+This project is a demo of a multimodal recipe assistant that can parse images of fridge contents and suggest recipes using OpenAI's latest API.
 
-## ✨ Features
-- Upload an image → detects ingredients using YOLOv8.
-- User edits/approves the ingredient list.
-- LLM suggests recipes (title, steps, substitutions, shopping list).
-- Optional dietary preferences (vegetarian, vegan, etc.).
+## 🚀 Setup
+
+1. **Clone or download this repository**
+
+```bash
+git clone https://github.com/beeradai/recipes-from-images.git
+cd recipes-from-images
+```
+
+2. **Install dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+3. **Set your OpenAI API key**
+
+On Linux / macOS:
+```bash
+export OPENAI_API_KEY="your_api_key_here"
+```
+
+On Windows PowerShell:
+```powershell
+$env:OPENAI_API_KEY="your_api_key_here"
+```
+
+4. **Run the Streamlit app**
+
+```bash
+streamlit run app.py
+```
+
+---
 
 ## 🛠 Tech Stack
-- **Computer Vision**: YOLOv8 (Ultralytics)
-- **NLP**: OpenAI GPT-3.5 (recipe generation)
-- **Frontend**: Streamlit
-- **Language**: Python
+- Python 3.9+
+- [Streamlit](https://streamlit.io/) for the UI
+- [OpenAI Python SDK (>=1.0.0)](https://github.com/openai/openai-python)
+- Pillow & Requests for image handling
 
-## 🚀 Quickstart
-```bash
-git clone <this-repo-url>
-cd multimodal-recipe-assistant
-pip install -r requirements.txt
-export OPENAI_API_KEY="your_api_key_here"
-streamlit run app.py
-```
+---
 
-Upload a fridge photo, edit ingredients, and let the AI suggest recipes! 🎉
+## 📌 Notes
+- Ensure you’re using `openai>=1.0.0` (this repo has been migrated to the new API).
+- If you encounter issues, check that your API key is correctly set and that dependencies are installed.
 
-## 🔮 Future Improvements
-- Fine-tuned food detection model (GroZi/Food-101 dataset).
-- Nutrition analysis.
-- Recipe retrieval + adaptation (reduce hallucinations).
-- Shopping list optimizer.
-
-
-## 🧪 Demo
-A sample fridge image (`sample_fridge.jpg`) is included for testing.
-
-Run the app and upload it:
-```bash
-streamlit run app.py
-```
-Then upload `sample_fridge.jpg` when prompted.
+Enjoy exploring recipes with your fridge images!

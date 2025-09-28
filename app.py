@@ -1,3 +1,7 @@
+from openai import OpenAI
+
+client = OpenAI()
+
 import streamlit as st
 from PIL import Image
 from detector import detect_ingredients_from_pil
@@ -13,7 +17,7 @@ constraints = st.text_input("Dietary preferences (optional)", "")
 
 if uploaded:
     img = Image.open(uploaded)
-    st.image(img, caption="Uploaded image", use_container_width=True)
+    st.image(img, caption="Uploaded image", use_column_width=True)
 
     st.write("🔎 Detecting ingredients...")
     detected = detect_ingredients_from_pil(img)
