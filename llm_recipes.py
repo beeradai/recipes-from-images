@@ -3,41 +3,40 @@ import json
 import streamlit as st
 from openai import OpenAI
 
-# �� Initialize OpenAI client
-if "OPENAI_API_KEY" in st.secrets:
+# Initialize OpenAI client
+if "OPENAI_API_KEY" in os.environ:
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+elif "OPENAI_API_KEY" in st.secrets:
     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 else:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    raise RuntimeError("❌ OPENAI_API_KEY not found in environment or Streamlit secrets")
 
-MODEL = "gpt-4o-mini"  # fast + multimodal
-
-def generate_recipes(ingredients, constraints=None, n_recipes=2, model=MODEL):
+def generate_recipes(ingredients, constraints="", n_recipes=2, model="gpt-4o-mini"):
     """
-    Generate structured recipes from a list of ingredients using OpenAI.
-    Always returns JSON with 'recipes' → list of dicts containing
-    title, estimated_time_minutes, ingredients, steps.
+    Generate structured recipes given a list of ingredients and optional constraints.
+    Ensures steps are returned as a list.
     """
     prompt = f"""
-You are a recipe generator. 
-Create {n_recipes} recipes using the following available ingredients:
+You are a helpful AI chef. 
+Generate {n_recipes} creative recipes using ONLY the following ingredients (and pantry basics like salt, pepper, oil, water if needed):
 
-Ingredients: {ingredients}
+Ingredients: {', '.join(ingredients)}
 
-Constraints: {constraints if constraints else "None"}
+Constraints: {constraints if constraints else 'none'}
 
-⚠️ OUTPUT FORMAT: Return ONLY valid JSON. No commentary, no markdown.
-Schema:
+Return JSON strictly in this format:
 {{
   "recipes": [
     {{
       "title": "string",
-      "estimated_time_minutes": number,
-      "ingredients": ["item1", "item2"],
-      "steps": ["First step...", "Second step...", "..."]
+      "estimated_time_minutes": int,
+      "ingredients": ["item1", "item2", ...],
+      "steps": ["step 1", "step 2", "step 3", ...]
     }}
   ]
 }}
-    """
+Make sure "steps" is always a JSON list of strings, never a single block of text.
+"""
 
     resp = client.chat.completions.create(
         model=model,
@@ -48,16 +47,16 @@ Schema:
     content = resp.choices[0].message.content.strip()
 
     try:
-        return json.loads(content)  # ✅ parse JSON output
+        return json.loads(content)  # ✅ structured dict
     except json.JSONDecodeError:
-        # fallback if the model outputs invalid JSON
+        # fallback: wrap raw text
         return {
             "recipes": [
                 {
                     "title": "Parsing error",
-                    "estimated_time_minutes": 0,
                     "ingredients": ingredients,
-                    "steps": [content],  # fallback: dump raw text
+                    "steps": [content],
+                    "estimated_time_minutes": "—"
                 }
             ]
         }
