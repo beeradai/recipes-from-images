@@ -1,72 +1,67 @@
-import streamlit as st
+\
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
+from io import BytesIO
+import uvicorn
+import os
+import json
+
 from detector import detect_ingredients_from_pil
 from ingredient_map import normalize_detected
 from llm_recipes import generate_recipes
-import json
 
-st.set_page_config(page_title="Recipes from Images", layout="wide")
+app = FastAPI()
 
-st.title("Recipes From Images")
-st.write("Upload ingredient photos and/or type them manually, then generate recipes!")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- Upload multiple images ---
-uploaded_files = st.file_uploader(
-    "Upload 1–5 ingredient images (can have multiple ingredients per image)", 
-    type=["jpg", "jpeg", "png"], 
-    accept_multiple_files=True
-)
+@app.get("/", response_class=HTMLResponse)
+async def upload_form():
+    html = """
+    <html>
+        <head>
+            <title>Recipe Generator</title>
+            <style>
+                body { font-family: sans-serif; max-width: 700px; margin: 30px auto; text-align: center; }
+                .image-preview { width: 150px; border-radius: 10px; margin: 10px; }
+                textarea { width: 100%; height: 100px; border-radius: 10px; padding: 10px; }
+                button { padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+            </style>
+        </head>
+        <body>
+            <h1>Upload Images or Enter Ingredients</h1>
+            <form action="/generate" enctype="multipart/form-data" method="post">
+                <input type="file" name="images" multiple accept="image/*"><br><br>
+                <textarea name="ingredients_text" placeholder="Add ingredients manually..."></textarea><br><br>
+                <button type="submit">Generate Recipes</button>
+            </form>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
-all_detected = []
-if uploaded_files:
-    for file in uploaded_files:
-        pil_img = Image.open(file).convert("RGB")
+@app.post("/generate", response_class=HTMLResponse)
+async def generate(images: list[UploadFile] = File(default=[]), ingredients_text: str = Form(default="")):
+    detected_all = []
+
+    for image in images:
+        contents = await image.read()
+        pil_img = Image.open(BytesIO(contents))
         detected = detect_ingredients_from_pil(pil_img)
-        normalized = normalize_detected(detected)
-        all_detected.extend(normalized)
+        detected_all.extend(detected)
 
-# --- Deduplicate ingredients ---
-all_detected = sorted(set(all_detected))
+    normalized = normalize_detected(list(set(detected_all)))
+    if ingredients_text.strip():
+        normalized.extend([i.strip() for i in ingredients_text.split(",") if i.strip()])
 
-# --- Checkbox selection for detected ingredients ---
-selected_ingredients = []
-if all_detected:
-    st.subheader("✅ Select detected ingredients to include")
-    for ing in all_detected:
-        if st.checkbox(ing, value=True, key=f"chk_{ing}"):
-            selected_ingredients.append(ing)
+    recipes = generate_recipes(normalized)
 
-# --- Manual text input ---
-manual_input = st.text_area("✍️ Add ingredients manually (comma-separated)")
-if manual_input.strip():
-    manual_ingredients = [i.strip() for i in manual_input.split(",") if i.strip()]
-    selected_ingredients.extend(manual_ingredients)
+    recipe_html = "<h2>Generated Recipes</h2>"
+    for r in recipes:
+        recipe_html += f"<div><h3>{r['title']}</h3><ul>" + "".join([f"<li>{step}</li>" for step in r['steps']]) + "</ul></div>"
 
-# --- Constraints (e.g., vegan, gluten-free) ---
-constraints = st.text_input("⚙️ Optional cooking constraints (e.g., vegan, gluten-free, 30 min max)")
+    return HTMLResponse(content=f"<html><body><a href='/'>⬅️ Back</a>{recipe_html}</body></html>")
 
-# --- Generate Recipes button ---
-if not selected_ingredients:
-    st.warning("�� Please select or add at least one ingredient before generating recipes.")
-else:
-    if st.button("�� Generate Recipes"):
-        with st.spinner("Cooking up ideas..."):
-            out = generate_recipes(selected_ingredients, constraints=constraints)
-
-        if "recipes" in out:
-            for r in out["recipes"]:
-                st.subheader(r.get("title", "Untitled"))
-                st.write(f"⏱ Estimated time: {r.get('estimated_time_minutes', '—')} minutes")
-
-                st.markdown("**Ingredients:**")
-                st.write(", ".join(r.get("ingredients", [])))
-
-                st.markdown("**Steps:**")
-                steps = r.get("steps", [])
-                if isinstance(steps, list):
-                    for i, step in enumerate(steps, 1):
-                        st.write(f"{i}. {step}")
-                else:
-                    st.write(steps)
-        else:
-            st.error("⚠️ No recipes generated. Please try again.")
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

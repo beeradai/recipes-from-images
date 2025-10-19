@@ -1,6 +1,6 @@
-streamlit
+\
+fastapi
+uvicorn
 pillow
-openai>=1.0.0
+openai
 ultralytics
-opencv-python-headless
-numpy
